@@ -1,0 +1,108 @@
+import React from 'react'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import type { ChatMessage } from '@/types/chat'
+import { useAgentStore } from '@/services/agentStore'
+import { getHealthPredictions } from '@/api/agentService'
+
+const Bubble: React.FC<{ msg: ChatMessage }> = ({ msg }) => {
+  const isUser = msg.role === 'user'
+  return (
+    <div className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
+      <div className={`max-w-[70%] rounded-2xl px-3 py-2 text-sm ${isUser ? 'bg-blue-600' : 'bg-white/10'} text-white`}> 
+        {msg.content}
+        <div className="mt-1 text-[10px] opacity-50">
+          {new Date(msg.timestamp).toLocaleTimeString()}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+const OracleChat: React.FC = () => {
+  const [messages, setMessages] = React.useState<ChatMessage[]>([
+    { id: 's1', role: 'system', content: 'Oracle ready. Ask me anything about plant operations.', timestamp: Date.now() },
+  ])
+  const [input, setInput] = React.useState('')
+  const autonomy = useAgentStore((s) => s.autonomy)
+  const [warnButtons, setWarnButtons] = React.useState<string[]>([])
+
+  const send = (text: string) => {
+    if (!text.trim()) return
+    const now = Date.now()
+    const userMsg: ChatMessage = { id: `u-${now}`, role: 'user', content: text, timestamp: now }
+    setMessages((prev) => [...prev, userMsg])
+    // Mock assistant reply
+    setTimeout(() => {
+      const reply: ChatMessage = {
+        id: `a-${Date.now()}`,
+        role: 'assistant',
+        content: 'Here are the steps from the SOP and relevant KPIs for the last 3h...',
+        timestamp: Date.now(),
+      }
+      setMessages((prev) => [...prev, reply])
+    }, 600)
+    setInput('')
+  }
+
+  React.useEffect(() => {
+    let cancelled = false
+    const update = async () => {
+      const health = await getHealthPredictions()
+      const anyWarn = [health.kiln, health.cooler, health.mill].some(h => h.status !== 'stable')
+      if (!cancelled) {
+        setWarnButtons(anyWarn ? [
+          'Show SOP for LSF deviation',
+          'Raw mix parameters 1h ago',
+          'Plot kiln temperature vs fuel rate (3h)'
+        ] : [])
+      }
+    }
+    update()
+    const id = window.setInterval(update, 10000)
+    return () => { cancelled = true; window.clearInterval(id) }
+  }, [])
+
+  return (
+    <div className="flex flex-col h-96 rounded-md border border-white/10 bg-black/40 text-white">
+      <div className="px-4 py-2 text-sm font-semibold border-b border-white/10">Oracle Assistant</div>
+      {(autonomy === 'paused' || warnButtons.length > 0) && (
+        <div className="px-4 py-2 flex gap-2 flex-wrap border-b border-white/10">
+          {(warnButtons.length ? warnButtons : ['Show SOP for LSF deviation','Raw mix parameters 1h ago','Plot kiln temperature vs fuel rate (3h)']).map((b) => (
+            <Button key={b} size="sm" variant="outline" onClick={() => send(b)} className="rounded-full">
+              <span className="text-xs">{b}</span>
+            </Button>
+          ))}
+        </div>
+      )}
+      <div className="flex-1 overflow-auto p-3 space-y-2">
+        {messages.map((m) => (
+          <Bubble key={m.id} msg={m} />
+        ))}
+      </div>
+      <form
+        className="p-2 flex items-center gap-2 border-t border-white/10"
+        onSubmit={(e) => { e.preventDefault(); send(input) }}
+      >
+        <Input
+          className="flex-1"
+          placeholder="Ask Oracle... (Enter to send, Shift+Enter for newline)"
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && e.shiftKey) return
+            if (e.key === 'Enter') {
+              e.preventDefault()
+              send(input)
+            }
+          }}
+        />
+        <Button type="submit">Send</Button>
+      </form>
+    </div>
+  )
+}
+
+export default OracleChat
+
+

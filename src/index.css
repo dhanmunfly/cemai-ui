@@ -1,0 +1,32 @@
+@import "tailwindcss";
+
+/* Theme tokens */
+@theme {
+  --color-bg: var(--color-bg-dark);
+  --color-surface: var(--color-surface-dark);
+  --color-border: var(--color-border-dark);
+  --color-text: 255 255 255;
+}
+
+[data-theme="light"] {
+  --color-bg: 255 255 255;
+  --color-surface: 245 245 245;
+  --color-border: 220 220 220;
+  --color-text: 33 37 41;
+}
+
+[data-theme="dark"] {
+  --color-bg: 10 10 10;
+  --color-surface: 26 26 26;
+  --color-border: 42 42 42;
+  --color-text: 255 255 255;
+}
+
+html, body, #root { height: 100%; }
+body { background-color: rgb(var(--color-bg)); color: rgb(var(--color-text)); }
+
+@layer base {
+  html, body, #root {
+    height: 100%;
+  }
+}
