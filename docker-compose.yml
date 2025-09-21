@@ -1,0 +1,42 @@
+version: '3.8'
+
+services:
+  cemai-ui:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3000:80"
+    environment:
+      - API_BASE_URL=http://localhost:8080
+      - WS_URL=ws://localhost:8080
+      - APP_ENV=development
+      - APP_VERSION=1.0.0-dev
+    volumes:
+      # Mount for development hot reload (optional)
+      - ./src:/app/src:ro
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Optional: Add a mock API service for local development
+  mock-api:
+    image: mockserver/mockserver:latest
+    ports:
+      - "8080:1080"
+    environment:
+      MOCKSERVER_SERVER_PORT: 1080
+      MOCKSERVER_LOG_LEVEL: INFO
+    volumes:
+      - ./mock-api:/opt/mockserver/initializerJson
+    command: ["-serverPort", "1080", "-initializationJsonPath", "/opt/mockserver/initializerJson"]
+    restart: unless-stopped
+
+networks:
+  default:
+    name: cemai-network
+

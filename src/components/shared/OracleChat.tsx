@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import type { ChatMessage } from '@/types/chat'
 import { useAgentStore } from '@/services/agentStore'
-import { getHealthPredictions } from '@/api/agentService'
+import { agentService } from '@/api/agentService'
 
 const Bubble: React.FC<{ msg: ChatMessage }> = ({ msg }) => {
   const isUser = msg.role === 'user'
@@ -24,38 +24,81 @@ const OracleChat: React.FC = () => {
     { id: 's1', role: 'system', content: 'Oracle ready. Ask me anything about plant operations.', timestamp: Date.now() },
   ])
   const [input, setInput] = React.useState('')
+  const [isLoading, setIsLoading] = React.useState(false)
   const autonomy = useAgentStore((s) => s.autonomy)
   const [warnButtons, setWarnButtons] = React.useState<string[]>([])
 
-  const send = (text: string) => {
-    if (!text.trim()) return
+  const send = async (text: string) => {
+    if (!text.trim() || isLoading) return
+    
     const now = Date.now()
     const userMsg: ChatMessage = { id: `u-${now}`, role: 'user', content: text, timestamp: now }
     setMessages((prev) => [...prev, userMsg])
-    // Mock assistant reply
-    setTimeout(() => {
+    setIsLoading(true)
+    
+    try {
+      // Get current KPIs for context
+      const kpis = await agentService.getRealtimeKpis()
+      const context = {
+        currentKPIs: {
+          specificPower: kpis.specificPower.value,
+          heatRate: kpis.heatRate.value,
+          clinkerLSF: kpis.clinkerLSF.value,
+          tsr: kpis.tsr.value,
+        },
+        autonomy: autonomy,
+      }
+      
+      const response = await agentService.sendChatMessage(text, context)
+      
       const reply: ChatMessage = {
         id: `a-${Date.now()}`,
         role: 'assistant',
-        content: 'Here are the steps from the SOP and relevant KPIs for the last 3h...',
+        content: response.message,
         timestamp: Date.now(),
       }
       setMessages((prev) => [...prev, reply])
-    }, 600)
-    setInput('')
+      
+      // Update suggestions if provided
+      if (response.suggestions && response.suggestions.length > 0) {
+        setWarnButtons(response.suggestions)
+      }
+    } catch (error) {
+      console.error('Chat message failed:', error)
+      const errorReply: ChatMessage = {
+        id: `a-${Date.now()}`,
+        role: 'assistant',
+        content: 'I apologize, but I encountered an error processing your request. Please try again.',
+        timestamp: Date.now(),
+      }
+      setMessages((prev) => [...prev, errorReply])
+    } finally {
+      setIsLoading(false)
+      setInput('')
+    }
   }
 
   React.useEffect(() => {
     let cancelled = false
     const update = async () => {
-      const health = await getHealthPredictions()
-      const anyWarn = [health.kiln, health.cooler, health.mill].some(h => h.status !== 'stable')
-      if (!cancelled) {
-        setWarnButtons(anyWarn ? [
-          'Show SOP for LSF deviation',
-          'Raw mix parameters 1h ago',
-          'Plot kiln temperature vs fuel rate (3h)'
-        ] : [])
+      try {
+        const health = await agentService.getHealthPredictions()
+        const anyWarn = Object.values(health).some(h => h.status !== 'stable')
+        
+        if (!cancelled) {
+          if (anyWarn) {
+            // Get context-aware suggestions
+            const suggestions = await agentService.getChatSuggestions('System health warnings detected')
+            setWarnButtons(suggestions)
+          } else {
+            setWarnButtons([])
+          }
+        }
+      } catch (error) {
+        console.error('Failed to update chat suggestions:', error)
+        if (!cancelled) {
+          setWarnButtons([])
+        }
       }
     }
     update()
@@ -79,6 +122,16 @@ const OracleChat: React.FC = () => {
         {messages.map((m) => (
           <Bubble key={m.id} msg={m} />
         ))}
+        {isLoading && (
+          <div className="flex justify-start">
+            <div className="bg-white/10 rounded-2xl px-3 py-2 text-sm text-white">
+              <div className="flex items-center gap-2">
+                <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white"></div>
+                Oracle is thinking...
+              </div>
+            </div>
+          </div>
+        )}
       </div>
       <form
         className="p-2 flex items-center gap-2 border-t border-white/10"
@@ -89,6 +142,7 @@ const OracleChat: React.FC = () => {
           placeholder="Ask Oracle... (Enter to send, Shift+Enter for newline)"
           value={input}
           onChange={(e) => setInput(e.target.value)}
+          disabled={isLoading}
           onKeyDown={(e) => {
             if (e.key === 'Enter' && e.shiftKey) return
             if (e.key === 'Enter') {
@@ -97,7 +151,9 @@ const OracleChat: React.FC = () => {
             }
           }}
         />
-        <Button type="submit">Send</Button>
+        <Button type="submit" disabled={isLoading || !input.trim()}>
+          {isLoading ? 'Sending...' : 'Send'}
+        </Button>
       </form>
     </div>
   )

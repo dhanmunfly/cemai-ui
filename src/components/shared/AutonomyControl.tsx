@@ -2,6 +2,7 @@ import React from 'react'
 import { useAgentStore, type AutonomyState } from '@/services/agentStore'
 import { useToast } from '@/components/shared/ToastProvider'
 import { useUiStore } from '@/services/uiStore'
+import { agentService } from '@/api/agentService'
 
 const stateStyle: Record<AutonomyState, string> = {
   on: 'bg-green-600 hover:bg-green-500',
@@ -23,11 +24,48 @@ const AutonomyControl: React.FC = () => {
   const { addToast } = useToast()
   const role = useUiStore((s) => s.role)
 
-  const clickHandler = () => {
-    if (role !== 'operator') { addToast({ message: 'Insufficient permissions', variant: 'error' }); return }
-    if (autonomy === 'on') { pause(); addToast({ message: 'Autonomy paused', variant: 'warning' }) }
-    else if (autonomy === 'paused') { resume(); addToast({ message: 'Autonomy resumed', variant: 'success' }) }
-    else if (autonomy === 'manual') { resume(); addToast({ message: 'Autonomy enabled', variant: 'success' }) }
+  const clickHandler = async () => {
+    if (role !== 'operator') { 
+      addToast({ message: 'Insufficient permissions', variant: 'error' })
+      return 
+    }
+    
+    try {
+      if (autonomy === 'on') { 
+        await agentService.pauseAutonomy('Manual pause by operator')
+        pause()
+        addToast({ message: 'Autonomy paused', variant: 'warning' }) 
+      }
+      else if (autonomy === 'paused') { 
+        await agentService.resumeAutonomy()
+        resume()
+        addToast({ message: 'Autonomy resumed', variant: 'success' }) 
+      }
+      else if (autonomy === 'manual') { 
+        await agentService.resumeAutonomy()
+        resume()
+        addToast({ message: 'Autonomy enabled', variant: 'success' }) 
+      }
+    } catch (error) {
+      console.error('Autonomy control failed:', error)
+      addToast({ message: 'Failed to change autonomy state', variant: 'error' })
+    }
+  }
+
+  const handleManualMode = async () => {
+    if (role !== 'operator') { 
+      addToast({ message: 'Insufficient permissions', variant: 'error' })
+      return 
+    }
+    
+    try {
+      await agentService.setManualMode('Manual mode activated by operator')
+      manual()
+      addToast({ message: 'Manual mode enabled', variant: 'error' })
+    } catch (error) {
+      console.error('Manual mode activation failed:', error)
+      addToast({ message: 'Failed to activate manual mode', variant: 'error' })
+    }
   }
 
   React.useEffect(() => {
@@ -36,7 +74,9 @@ const AutonomyControl: React.FC = () => {
         e.preventDefault()
         clickHandler()
       }
-      if (e.key.toLowerCase() === 'm') { manual(); addToast({ message: 'Manual mode enabled', variant: 'error' }) }
+      if (e.key.toLowerCase() === 'm') { 
+        handleManualMode()
+      }
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
@@ -53,7 +93,7 @@ const AutonomyControl: React.FC = () => {
       </button>
       <button
         className="px-3 py-2 rounded-md border border-white/20 text-white/90 hover:bg-white/10"
-        onClick={() => { if (role !== 'operator') { addToast({ message: 'Insufficient permissions', variant: 'error' }); return } manual(); addToast({ message: 'Manual mode enabled', variant: 'error' }) }}
+        onClick={handleManualMode}
         title="Switch to manual control"
       >
         Manual

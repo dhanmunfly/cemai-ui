@@ -1,15 +1,14 @@
 import React from 'react'
 import { Button } from '@/components/ui/button'
 import { useToast } from '@/components/shared/ToastProvider'
-import type { Proposal, MasterSynthesis } from '@/types/decision'
+import type { Proposal, MasterSynthesis, DecisionPayload } from '@/types/decision'
 import { useAgentStore } from '@/services/agentStore'
+import { agentService } from '@/api/agentService'
 
 type Props = {
   open: boolean
   onOpenChange: (open: boolean) => void
-  guardian: Proposal
-  optimizer: Proposal
-  synthesis: MasterSynthesis
+  decision: DecisionPayload
   onApprove: () => void
   onReject: () => void
 }
@@ -48,13 +47,35 @@ const ProposalView: React.FC<{ proposal: Proposal; color: string }> = ({ proposa
   </div>
 )
 
-const DecisionHub: React.FC<Props> = ({ open, onOpenChange, guardian, optimizer, synthesis, onApprove, onReject }) => {
+const DecisionHub: React.FC<Props> = ({ open, onOpenChange, decision, onApprove, onReject }) => {
   const autonomy = useAgentStore((s) => s.autonomy)
   const { addToast } = useToast()
   const dialogRef = React.useRef<HTMLDivElement | null>(null)
   const previouslyFocused = React.useRef<HTMLElement | null>(null)
   const titleId = 'decision-hub-title'
   const descId = 'decision-hub-desc'
+
+  const handleApprove = async () => {
+    try {
+      await agentService.approveDecision(decision.id, 'Approved by operator via Decision Hub')
+      addToast({ message: 'Decision approved', variant: 'success' })
+      onApprove()
+    } catch (error) {
+      console.error('Decision approval failed:', error)
+      addToast({ message: 'Failed to approve decision', variant: 'error' })
+    }
+  }
+
+  const handleReject = async () => {
+    try {
+      await agentService.rejectDecision(decision.id, 'Rejected by operator via Decision Hub')
+      addToast({ message: 'Decision rejected', variant: 'warning' })
+      onReject()
+    } catch (error) {
+      console.error('Decision rejection failed:', error)
+      addToast({ message: 'Failed to reject decision', variant: 'error' })
+    }
+  }
 
   // Focus management & ESC to close
   React.useEffect(() => {
@@ -110,14 +131,14 @@ const DecisionHub: React.FC<Props> = ({ open, onOpenChange, guardian, optimizer,
         <div id={descId} className="sr-only">Review and approve or reject AI proposals with master synthesis</div>
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-5">
           <Panel title="Guardian Proposal">
-            <ProposalView proposal={guardian} color="text-blue-400" />
+            <ProposalView proposal={decision.guardian} color="text-blue-400" />
           </Panel>
           <Panel title="Master Synthesis & Reasoning">
-            <div className="text-white/90 mb-2">{synthesis.summary}</div>
-            <div className="text-white/70 mb-3 text-sm">{synthesis.rationale}</div>
+            <div className="text-white/90 mb-2">{decision.synthesis.summary}</div>
+            <div className="text-white/70 mb-3 text-sm">{decision.synthesis.rationale}</div>
             <div className="text-xs">
               <div className="opacity-70 mb-1">Recommended Adjustments</div>
-              {Object.entries(synthesis.recommendedAdjustments).map(([k, v]) => (
+              {Object.entries(decision.synthesis.recommendedAdjustments).map(([k, v]) => (
                 <div key={k} className="flex justify-between">
                   <span className="opacity-70">{k}</span>
                   <span>{v}</span>
@@ -126,12 +147,12 @@ const DecisionHub: React.FC<Props> = ({ open, onOpenChange, guardian, optimizer,
             </div>
           </Panel>
           <Panel title="Optimizer Proposal">
-            <ProposalView proposal={optimizer} color="text-green-400" />
+            <ProposalView proposal={decision.optimizer} color="text-green-400" />
           </Panel>
         </div>
         <div className="flex items-center justify-end gap-3">
-          <Button variant="outline" onClick={() => { addToast({ message: 'Decision rejected', variant: 'warning' }); onReject() }}>Reject & Re-plan</Button>
-          <Button onClick={() => { addToast({ message: 'Decision approved', variant: 'success' }); onApprove() }}>Approve & Execute</Button>
+          <Button variant="outline" onClick={handleReject}>Reject & Re-plan</Button>
+          <Button onClick={handleApprove}>Approve & Execute</Button>
         </div>
       </div>
     </div>

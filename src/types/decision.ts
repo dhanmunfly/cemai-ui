@@ -16,4 +16,12 @@ export interface MasterSynthesis {
   recommendedAdjustments: Record<string, number>
 }
 
+export interface DecisionPayload {
+  id: string
+  guardian: Proposal
+  optimizer: Proposal
+  synthesis: MasterSynthesis
+  createdAt: string
+}
+
 
