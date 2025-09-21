@@ -885,38 +885,38 @@ class AgentService {
     return {
       specificPower: {
         id: 'specificPower' as const,
-        name: 'Specific Power',
-        value: 28.5,
-        unit: 'kWh/ton',
-        trend: 'up' as const,
+        name: 'Specific Power Consumption',
+        value: 45.2,
+        unit: 'kWh/t',
+        trend: 'down' as const,
         status: 'normal' as const,
-        target: { min: 26, max: 30 },
+        target: { min: 40, max: 50 },
         timestamp: now,
       },
       heatRate: {
         id: 'heatRate' as const,
         name: 'Heat Rate',
-        value: 780,
+        value: 3200,
         unit: 'kcal/kg',
-        trend: 'stable' as const,
-        status: 'normal' as const,
-        target: { min: 700, max: 820 },
+        trend: 'up' as const,
+        status: 'warning' as const,
+        target: { min: 3000, max: 3500 },
         timestamp: now,
       },
       clinkerLSF: {
         id: 'clinkerLSF' as const,
         name: 'Clinker LSF',
-        value: 96.5,
+        value: 96.8,
         unit: '',
-        trend: 'down' as const,
-        status: 'warning' as const,
+        trend: 'stable' as const,
+        status: 'normal' as const,
         target: { min: 95, max: 98 },
         timestamp: now,
       },
       tsr: {
         id: 'tsr' as const,
         name: 'TSR',
-        value: 18,
+        value: 22.5,
         unit: '%',
         trend: 'up' as const,
         status: 'normal' as const,
@@ -928,9 +928,27 @@ class AgentService {
 
   private getMockHealthPredictions(): HealthMap {
     return {
-      kiln: { system: 'kiln', status: 'warning', predictionMinutes: 45 },
-      cooler: { system: 'cooler', status: 'stable' },
-      mill: { system: 'mill', status: 'critical', predictionMinutes: 10 },
+      kiln: { 
+        system: 'kiln', 
+        status: 'warning', 
+        predictionMinutes: 45,
+        confidence: 0.85,
+        recommendations: ['Check burner alignment', 'Monitor temperature zones']
+      },
+      cooler: { 
+        system: 'cooler', 
+        status: 'stable',
+        predictionMinutes: 120,
+        confidence: 0.92,
+        recommendations: ['Continue current operation']
+      },
+      mill: { 
+        system: 'mill', 
+        status: 'critical', 
+        predictionMinutes: 15,
+        confidence: 0.78,
+        recommendations: ['Immediate maintenance required', 'Check bearing temperature']
+      },
     }
   }
 
@@ -974,9 +992,9 @@ class AgentService {
       {
         id: 'notif_001',
         type: 'decision_pending',
-        title: 'Decision Required',
-        message: 'New AI proposal requires your approval',
-        timestamp: new Date().toISOString(),
+        title: 'Decision Required: Kiln Speed Adjustment',
+        message: 'AI proposes reducing kiln speed by 2% to stabilize temperature zones. Requires operator approval.',
+        timestamp: new Date(Date.now() - 300000).toISOString(), // 5 minutes ago
         read: false,
         priority: 'high'
       },
@@ -984,10 +1002,37 @@ class AgentService {
         id: 'notif_002',
         type: 'system_alert',
         title: 'Kiln Temperature Alert',
-        message: 'Kiln temperature approaching critical threshold',
-        timestamp: new Date(Date.now() - 300000).toISOString(),
+        message: 'Kiln temperature approaching critical threshold (1450°C). Consider immediate intervention.',
+        timestamp: new Date(Date.now() - 600000).toISOString(), // 10 minutes ago
         read: false,
         priority: 'critical'
+      },
+      {
+        id: 'notif_003',
+        type: 'optimization',
+        title: 'Fuel Mix Optimization Available',
+        message: 'New optimization opportunity detected. Potential cost savings: $2,500/day with 15% alternative fuel ratio.',
+        timestamp: new Date(Date.now() - 900000).toISOString(), // 15 minutes ago
+        read: true,
+        priority: 'medium'
+      },
+      {
+        id: 'notif_004',
+        type: 'maintenance',
+        title: 'Mill Maintenance Due',
+        message: 'Mill bearing temperature elevated. Scheduled maintenance recommended within 24 hours.',
+        timestamp: new Date(Date.now() - 1800000).toISOString(), // 30 minutes ago
+        read: true,
+        priority: 'medium'
+      },
+      {
+        id: 'notif_005',
+        type: 'quality',
+        title: 'LSF Quality Alert',
+        message: 'Clinker LSF deviation detected (96.8 vs target 95-98). Quality control action required.',
+        timestamp: new Date(Date.now() - 2400000).toISOString(), // 40 minutes ago
+        read: false,
+        priority: 'high'
       }
     ]
   }

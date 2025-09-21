@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 import { useAgentStore } from '@/services/agentStore'
-import { getRealtimeKpis } from '@/api/agentService'
+import { agentService } from '@/api/agentService'
 
 export const useAgentState = (pollMs: number = 5000) => {
   const { kpis, lastUpdated, setKpis } = useAgentStore()
@@ -11,7 +11,7 @@ export const useAgentState = (pollMs: number = 5000) => {
 
     const tick = async () => {
       try {
-        const data = await getRealtimeKpis()
+        const data = await agentService.getRealtimeKpis()
         if (!cancelled) setKpis(data)
       } catch (_) {
         // swallow for mock

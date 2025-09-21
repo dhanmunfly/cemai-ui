@@ -13,6 +13,10 @@ export const CardTitle: React.FC<React.HTMLAttributes<HTMLDivElement>> = ({ clas
   <div className={cn('text-sm font-semibold text-white', className)} {...props} />
 )
 
+export const CardDescription: React.FC<React.HTMLAttributes<HTMLDivElement>> = ({ className, ...props }) => (
+  <div className={cn('text-xs text-gray-400 mt-1', className)} {...props} />
+)
+
 export const CardContent: React.FC<React.HTMLAttributes<HTMLDivElement>> = ({ className, ...props }) => (
   <div className={cn('p-3', className)} {...props} />
 )

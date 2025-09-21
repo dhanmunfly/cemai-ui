@@ -1,4 +1,4 @@
-import { WebSocketEventData, WebSocketMessage } from '@/types/api'
+import type { WebSocketEventData, WebSocketMessage } from '@/types/api'
 
 export interface WebSocketConfig {
   url: string

@@ -1,7 +1,7 @@
 import React from 'react'
 import { Button } from '@/components/ui/button'
 import { useToast } from '@/components/shared/ToastProvider'
-import type { Proposal, MasterSynthesis, DecisionPayload } from '@/types/decision'
+import type { Proposal, DecisionPayload } from '@/types/decision'
 import { useAgentStore } from '@/services/agentStore'
 import { agentService } from '@/api/agentService'
 

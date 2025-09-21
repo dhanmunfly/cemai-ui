@@ -12,29 +12,59 @@ import Sidebar from '@/components/shared/Sidebar'
 import StatusBar from '@/components/shared/StatusBar'
 import { agentService } from '@/api/agentService'
 import { useToast } from '@/components/shared/ToastProvider'
+import { useAgentStore } from '@/services/agentStore'
 
 const DashboardPage: React.FC = () => {
   const { kpis } = useAgentState(5000)
+  const autonomy = useAgentStore((state) => state.autonomy)
   const [hubOpen, setHubOpen] = React.useState(false)
   const [pendingDecision, setPendingDecision] = React.useState<DecisionPayload | null>(null)
-  const [isLoadingDecision, setIsLoadingDecision] = React.useState(false)
+  const [isUsingMockData, setIsUsingMockData] = React.useState(false)
   const { addToast } = useToast()
+
+  // Check if we're using mock data
+  React.useEffect(() => {
+    const checkMockDataStatus = async () => {
+      try {
+        // Try to make a simple API call to check if we're using mock data
+        await agentService.ping()
+        setIsUsingMockData(false)
+      } catch (error) {
+        setIsUsingMockData(true)
+      }
+    }
+    checkMockDataStatus()
+  }, [])
 
   // Load pending decisions
   React.useEffect(() => {
     const loadPendingDecisions = async () => {
       try {
-        setIsLoadingDecision(true)
         const decisions = await agentService.getPendingDecisions()
         if (decisions.length > 0) {
-          setPendingDecision(decisions[0]) // Show first pending decision
-          setHubOpen(true) // Auto-open hub if there's a pending decision
+          const decision = decisions[0]
+          setPendingDecision(decision)
+          
+          // Check autonomy state
+          if (autonomy === 'on') {
+            // Auto mode: Automatically approve the decision
+            console.log('Auto mode: Automatically approving decision', decision.id)
+            await agentService.approveDecision(decision.id, 'Auto-approved by AI system')
+            addToast({ 
+              message: `Decision ${decision.id} auto-approved by AI system`, 
+              variant: 'success' 
+            })
+            setPendingDecision(null)
+            setHubOpen(false)
+          } else {
+            // Manual mode: Show popup for operator approval
+            console.log('Manual mode: Showing decision popup for operator approval')
+            setHubOpen(true)
+          }
         }
       } catch (error) {
         console.error('Failed to load pending decisions:', error)
         addToast({ message: 'Failed to load pending decisions', variant: 'error' })
-      } finally {
-        setIsLoadingDecision(false)
       }
     }
 
@@ -43,7 +73,7 @@ const DashboardPage: React.FC = () => {
     // Poll for new pending decisions
     const interval = setInterval(loadPendingDecisions, 3000)
     return () => clearInterval(interval)
-  }, [])
+  }, [autonomy]) // Add autonomy as dependency
 
   const handleDecisionApproved = () => {
     setHubOpen(false)
@@ -75,7 +105,15 @@ const DashboardPage: React.FC = () => {
   return (
     <div className="p-0 text-white">
       <Sidebar />
-      <div className="sticky top-0 z-40 backdrop-blur border-b pl-[var(--sidebar-w,16rem)] pr-6 py-3 bg-[rgb(var(--color-surface))]/70 border-[rgb(var(--color-border))]/40">
+      
+      {/* Mock Data Indicator */}
+      {isUsingMockData && (
+        <div className="fixed top-0 left-0 right-0 z-50 bg-yellow-500 text-yellow-900 px-4 py-2 text-center text-sm font-medium">
+          🎭 Demo Mode - Using Mock Data for Demonstration
+        </div>
+      )}
+      
+      <div className={`sticky top-0 z-40 backdrop-blur border-b pl-[var(--sidebar-w,16rem)] pr-6 py-3 bg-[rgb(var(--color-surface))]/70 border-[rgb(var(--color-border))]/40 ${isUsingMockData ? 'mt-8' : ''}`}>
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-semibold">CemAI Control Tower</h1>
           <div className="flex items-center gap-3">

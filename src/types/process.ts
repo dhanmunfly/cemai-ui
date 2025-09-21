@@ -6,6 +6,8 @@ export interface HealthPrediction {
   system: ProcessSystem
   status: HealthStatus
   predictionMinutes?: number
+  confidence?: number
+  recommendations?: string[]
 }
 
 export type HealthMap = Record<ProcessSystem, HealthPrediction>

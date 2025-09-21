@@ -11,6 +11,7 @@ const Dot: React.FC<{ ok: boolean }> = ({ ok }) => (
 
 const StatusBar: React.FC = () => {
   const lastUpdated = useAgentStore((s) => s.lastUpdated)
+  const autonomy = useAgentStore((s) => s.autonomy)
   const [latencyMs, setLatencyMs] = React.useState<number | null>(null)
   const [connected, setConnected] = React.useState(true)
   const role = useUiStore((s) => s.role)
@@ -53,6 +54,13 @@ const StatusBar: React.FC = () => {
         </div>
         <div className="opacity-80">Latency: {latencyMs ?? '—'} ms</div>
         <div className="opacity-80">Last updated: {lastUpdated ? new Date(lastUpdated).toLocaleTimeString() : '—'}</div>
+        <div className={`px-2 py-1 rounded text-xs font-medium ${
+          autonomy === 'on' ? 'bg-green-600 text-white' : 
+          autonomy === 'paused' ? 'bg-yellow-600 text-white' : 'bg-red-600 text-white'
+        }`}>
+          {autonomy === 'on' ? 'AUTO MODE' : 
+           autonomy === 'paused' ? 'PAUSED' : 'MANUAL MODE'}
+        </div>
         
         {user && (
           <div className="flex items-center gap-2">

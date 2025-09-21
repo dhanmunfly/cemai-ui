@@ -173,7 +173,7 @@ export interface SOPSearchResponse {
 // Notification Types
 export interface Notification {
   id: string
-  type: 'decision_pending' | 'system_alert' | 'maintenance' | 'info'
+  type: 'decision_pending' | 'system_alert' | 'maintenance' | 'info' | 'optimization' | 'quality'
   title: string
   message: string
   timestamp: string
@@ -517,74 +517,3 @@ export interface FilterRequest {
   type?: string
 }
 
-// Export all types
-export type {
-  ApiResponse,
-  LoginRequest,
-  AuthResponse,
-  User,
-  RefreshRequest,
-  KpiData,
-  KpiResponse,
-  HealthPrediction,
-  HealthPredictionResponse,
-  ProcessAlert,
-  LogEntry,
-  AgentState,
-  AgentProposal,
-  DecisionSynthesis,
-  DecisionPayload,
-  PendingDecisionsResponse,
-  DecisionHistoryEntry,
-  DecisionHistoryResponse,
-  ChatMessage,
-  ChatSession,
-  ChatResponse,
-  ChatSuggestionsResponse,
-  SOP,
-  SOPSearchResponse,
-  Notification,
-  NotificationsResponse,
-  AuditEvent,
-  AuditEventsResponse,
-  SystemConfig,
-  SystemVersion,
-  PingResponse,
-  GuardianStatus,
-  StabilityPredictionRequest,
-  StabilityPrediction,
-  QualityMetrics,
-  ControlActionValidation,
-  ValidationResult,
-  FuelMix,
-  OptimizationConstraints,
-  MarketPrices,
-  FuelOptimizationRequest,
-  FuelOptimization,
-  CurrentOptimization,
-  MarketSensitivity,
-  MarketUpdate,
-  WorkflowOrchestrationRequest,
-  WorkflowOrchestration,
-  WorkflowStatus,
-  AgentBroadcast,
-  OPCUAStatus,
-  CommandExecutionRequest,
-  CommandExecution,
-  CommandHistoryEntry,
-  CommandValidationRequest,
-  ApiError,
-  ValidationError,
-  WebSocketMessage,
-  KpiUpdateMessage,
-  AgentProposalMessage,
-  LogEntryMessage,
-  ProcessAlertMessage,
-  NotificationMessage,
-  SystemStatusMessage,
-  WebSocketEventData,
-  PaginatedRequest,
-  PaginatedResponse,
-  DateRangeRequest,
-  FilterRequest
-}

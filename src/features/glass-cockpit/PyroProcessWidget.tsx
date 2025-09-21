@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { getHealthPredictions } from '@/api/agentService'
+import { agentService } from '@/api/agentService'
 import type { HealthMap } from '@/types/process'
 import HealthGlyph from '@/components/shared/HealthGlyph'
 
@@ -11,7 +11,7 @@ const PyroProcessWidget: React.FC = () => {
     let timer: number | undefined
 
     const load = async () => {
-      const data = await getHealthPredictions()
+      const data = await agentService.getHealthPredictions()
       if (!cancelled) setHealth(data)
       if (!cancelled) timer = window.setTimeout(load, 10000)
     }

@@ -379,14 +379,14 @@ class APITestSuite {
     console.log('\n🔌 Testing WebSocket Connection...')
     
     await this.runTestWithTimeout('WebSocket connection', async () => {
-      return new Promise<void>((resolve, reject) => {
+      return new Promise<void>((resolve) => {
         const ws = createCemAIWebSocket({
           onConnect: () => {
             console.log('WebSocket connected successfully')
             ws.disconnect()
             resolve()
           },
-          onError: (error) => {
+          onError: () => {
             console.log('WebSocket connection failed, using mock mode')
             resolve() // Don't fail the test if WebSocket is not available
           },
@@ -413,7 +413,7 @@ class APITestSuite {
   async runAllTests(): Promise<void> {
     console.log('🚀 Starting Comprehensive API Integration Tests...')
     console.log(`Base URL: ${TEST_CONFIG.baseURL}`)
-    console.log('=' * 60)
+    console.log('='.repeat(60))
 
     try {
       await this.testAuthentication()
@@ -432,9 +432,9 @@ class APITestSuite {
   }
 
   private printResults(): void {
-    console.log('\n' + '=' * 60)
+    console.log('\n' + '='.repeat(60))
     console.log('📊 TEST RESULTS SUMMARY')
-    console.log('=' * 60)
+    console.log('='.repeat(60))
 
     const passed = this.testResults.filter(r => r.status === 'pass').length
     const failed = this.testResults.filter(r => r.status === 'fail').length
@@ -459,13 +459,13 @@ class APITestSuite {
     const avgDuration = this.testResults.reduce((sum, r) => sum + r.duration, 0) / total
     console.log(`\n⏱️ Average Test Duration: ${avgDuration.toFixed(0)}ms`)
 
-    console.log('\n' + '=' * 60)
+    console.log('\n' + '='.repeat(60))
     if (failed === 0) {
       console.log('🎉 ALL TESTS PASSED! API Integration is working correctly.')
     } else {
       console.log('⚠️ Some tests failed. Check the API endpoints and network connectivity.')
     }
-    console.log('=' * 60)
+    console.log('='.repeat(60))
   }
 }
 

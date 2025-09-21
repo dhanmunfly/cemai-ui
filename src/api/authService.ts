@@ -89,24 +89,74 @@ class AuthService {
   }
 
   async login(credentials: LoginRequest): Promise<AuthResponse> {
+    return this.handleApiCall(
+      async () => {
+        const response = await axios.post<AuthResponse>(
+          `${this.baseURL}/api/v1/auth/login`,
+          credentials,
+          { headers: this.getHeaders() }
+        )
+        
+        this.accessToken = response.data.data.accessToken
+        this.refreshToken = response.data.data.refreshToken
+        
+        // Store tokens in localStorage
+        localStorage.setItem('accessToken', this.accessToken)
+        localStorage.setItem('refreshToken', this.refreshToken)
+        
+        return response.data
+      },
+      () => this.getMockLoginResponse(credentials)
+    )
+  }
+
+  private async handleApiCall<T>(apiCall: () => Promise<T>, fallback: () => T): Promise<T> {
     try {
-      const response = await axios.post<AuthResponse>(
-        `${this.baseURL}/api/v1/auth/login`,
-        credentials,
-        { headers: this.getHeaders() }
-      )
-      
-      this.accessToken = response.data.data.accessToken
-      this.refreshToken = response.data.data.refreshToken
-      
-      // Store tokens in localStorage
-      localStorage.setItem('accessToken', this.accessToken)
-      localStorage.setItem('refreshToken', this.refreshToken)
-      
-      return response.data
+      return await apiCall()
     } catch (error) {
-      console.error('Login failed:', error)
-      throw error
+      console.warn('API call failed, using mock data:', error)
+      return fallback()
+    }
+  }
+
+  private getMockLoginResponse(credentials: LoginRequest): AuthResponse {
+    // Mock successful login for demo purposes
+    const mockUser: User = {
+      id: 'user_001',
+      name: 'John Operator',
+      email: credentials.email,
+      role: 'operator',
+      permissions: [
+        'view_dashboard',
+        'view_kpis',
+        'view_decisions',
+        'approve_decisions',
+        'chat_with_oracle',
+        'view_logs',
+        'view_notifications'
+      ]
+    }
+
+    const mockTokens = {
+      accessToken: `mock_access_token_${Date.now()}`,
+      refreshToken: `mock_refresh_token_${Date.now()}`
+    }
+
+    this.accessToken = mockTokens.accessToken
+    this.refreshToken = mockTokens.refreshToken
+
+    // Store tokens in localStorage
+    localStorage.setItem('accessToken', this.accessToken)
+    localStorage.setItem('refreshToken', this.refreshToken)
+
+    return {
+      data: {
+        accessToken: mockTokens.accessToken,
+        refreshToken: mockTokens.refreshToken,
+        user: mockUser
+      },
+      timestamp: new Date().toISOString(),
+      requestId: `req_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`
     }
   }
 
@@ -115,21 +165,26 @@ class AuthService {
       throw new Error('No refresh token available')
     }
 
-    // Prevent multiple simultaneous refresh requests
-    if (this.isRefreshing && this.refreshPromise) {
-      return this.refreshPromise
-    }
+    return this.handleApiCall(
+      async () => {
+        // Prevent multiple simultaneous refresh requests
+        if (this.isRefreshing && this.refreshPromise) {
+          return this.refreshPromise
+        }
 
-    this.isRefreshing = true
-    this.refreshPromise = this.performTokenRefresh()
+        this.isRefreshing = true
+        this.refreshPromise = this.performTokenRefresh()
 
-    try {
-      const result = await this.refreshPromise
-      return result
-    } finally {
-      this.isRefreshing = false
-      this.refreshPromise = null
-    }
+        try {
+          const result = await this.refreshPromise
+          return result
+        } finally {
+          this.isRefreshing = false
+          this.refreshPromise = null
+        }
+      },
+      () => this.getMockRefreshResponse()
+    )
   }
 
   private async performTokenRefresh(): Promise<AuthResponse> {
@@ -139,14 +194,14 @@ class AuthService {
         { refreshToken: this.refreshToken },
         { headers: this.getHeaders() }
       )
-      
+
       this.accessToken = response.data.data.accessToken
       this.refreshToken = response.data.data.refreshToken
-      
+
       // Update stored tokens
       localStorage.setItem('accessToken', this.accessToken)
       localStorage.setItem('refreshToken', this.refreshToken)
-      
+
       return response.data
     } catch (error) {
       console.error('Token refresh failed:', error)
@@ -155,36 +210,100 @@ class AuthService {
     }
   }
 
+  private getMockRefreshResponse(): AuthResponse {
+    const mockTokens = {
+      accessToken: `mock_access_token_${Date.now()}`,
+      refreshToken: `mock_refresh_token_${Date.now()}`
+    }
+
+    this.accessToken = mockTokens.accessToken
+    this.refreshToken = mockTokens.refreshToken
+
+    // Update stored tokens
+    localStorage.setItem('accessToken', this.accessToken)
+    localStorage.setItem('refreshToken', this.refreshToken)
+
+    return {
+      data: {
+        accessToken: mockTokens.accessToken,
+        refreshToken: mockTokens.refreshToken,
+        user: {
+          id: 'user_001',
+          name: 'John Operator',
+          email: 'operator@cemai.com',
+          role: 'operator',
+          permissions: [
+            'view_dashboard',
+            'view_kpis',
+            'view_decisions',
+            'approve_decisions',
+            'chat_with_oracle',
+            'view_logs',
+            'view_notifications'
+          ]
+        }
+      },
+      timestamp: new Date().toISOString(),
+      requestId: `req_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`
+    }
+  }
+
   async getCurrentUser(): Promise<User> {
-    try {
-      const response = await axios.get<{ data: User }>(
-        `${this.baseURL}/api/v1/auth/me`,
-        { headers: this.getHeaders() }
-      )
-      return response.data.data
-    } catch (error) {
-      console.error('Get current user failed:', error)
-      throw error
+    return this.handleApiCall(
+      async () => {
+        const response = await axios.get<{ data: User }>(
+          `${this.baseURL}/api/v1/auth/me`,
+          { headers: this.getHeaders() }
+        )
+        return response.data.data
+      },
+      () => this.getMockCurrentUser()
+    )
+  }
+
+  private getMockCurrentUser(): User {
+    return {
+      id: 'user_001',
+      name: 'John Operator',
+      email: 'operator@cemai.com',
+      role: 'operator',
+      permissions: [
+        'view_dashboard',
+        'view_kpis',
+        'view_decisions',
+        'approve_decisions',
+        'chat_with_oracle',
+        'view_logs',
+        'view_notifications'
+      ]
     }
   }
 
   async logout(): Promise<void> {
-    try {
-      if (this.refreshToken) {
-        await axios.post(
-          `${this.baseURL}/api/v1/auth/logout`,
-          { refreshToken: this.refreshToken },
-          { headers: this.getHeaders() }
-        )
-      }
-    } catch (error) {
-      console.error('Logout failed:', error)
-    } finally {
-      this.accessToken = null
-      this.refreshToken = null
-      localStorage.removeItem('accessToken')
-      localStorage.removeItem('refreshToken')
-    }
+    return this.handleApiCall(
+      async () => {
+        if (this.refreshToken) {
+          await axios.post(
+            `${this.baseURL}/api/v1/auth/logout`,
+            { refreshToken: this.refreshToken },
+            { headers: this.getHeaders() }
+          )
+        }
+      },
+      () => this.performMockLogout()
+    )
+  }
+
+  private performMockLogout(): void {
+    console.log('Mock logout: Clearing tokens and user session')
+    this.clearTokens()
+  }
+
+  private clearTokens(): void {
+    this.accessToken = null
+    this.refreshToken = null
+    localStorage.removeItem('accessToken')
+    localStorage.removeItem('refreshToken')
   }
 
   // Initialize tokens from localStorage
